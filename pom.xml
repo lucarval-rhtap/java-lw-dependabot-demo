@@ -21,7 +21,7 @@
         <java.version>17</java.version>
         <spring.boot.version>3.5.9</spring.boot.version>
         <spring.security.version>6.5.7</spring.security.version>
-        <openapi-generator.version>7.2.0</openapi-generator.version>
+        <openapi-generator.version>7.26.0</openapi-generator.version>
         <jackson.version>2.21.1</jackson.version>
         <springdoc.version>2.8.9</springdoc.version>
         <jsonpath.version>2.7.0</jsonpath.version>
