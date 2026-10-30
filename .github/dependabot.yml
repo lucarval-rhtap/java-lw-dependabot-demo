@@ -18,3 +18,14 @@ updates:
     labels:
       - "dependencies"
       - "lightwell"
+    # Dependabot always queries Maven Central alongside configured registries, and a
+    # newer upstream release (e.g. 2.22.4) always outcompetes a remediated version on
+    # the same line (e.g. 2.21.1.rhlw-00002). Suppress major/minor upstream bumps so
+    # only patch-level updates pass through — which is where .rhlw remediations live.
+    # To take an upstream major/minor upgrade, bump the version manually or comment
+    # this block out.
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"

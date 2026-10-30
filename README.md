@@ -135,6 +135,22 @@ in the GitHub repository under **Settings → Secrets and variables → Dependab
 Once configured, Dependabot opens PRs that bump dependencies to their remediated
 (`.rhlw-0000X`) versions when Red Hat publishes them.
 
+#### Why upstream bumps are suppressed
+
+Dependabot always queries Maven Central alongside the Lightwell registry, and proposes the
+single **highest** version it finds. A newer upstream release (e.g. `2.22.4`) always outcompetes
+a remediated version on the same line (e.g. `2.21.1.rhlw-00002`). Because of this, the
+configuration ignores all `semver-major` and `semver-minor` updates — only patch-level updates
+pass through, which is where `.rhlw` remediations live (e.g. `2.21.1 → 2.21.1.rhlw-00001`).
+
+To take an upstream major/minor upgrade deliberately, bump the version in `pom.xml` manually or
+remove the `ignore` block temporarily.
+
+> **Note:** `.rhlw` artifacts are also resolved transparently at build time — Maven picks them
+> up automatically whenever they exist for a declared version, no PR required. Dependabot PRs
+> make the remediation *visible and reviewable*, but the secure resolution itself does not
+> depend on them.
+
 ### Lightwell Dependency Resolution
 
 Which of your dependencies have validated or remediated artifacts in the Lightwell Network
