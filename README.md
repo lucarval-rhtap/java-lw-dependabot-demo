@@ -5,7 +5,7 @@ follow an **API-first** contract defined in [openapi/openapi.yaml](./openapi/ope
 
 | Property | Value |
 |----------|-------|
-| Spring Boot | 2.7.18 |
+| Spring Boot | 3.5.9 |
 | Java | 17 |
 | Build tool | Maven |
 | GroupId | `com.redhat.lightwell` |
@@ -71,12 +71,11 @@ mvn openapi-generator:generate
 | `src/test/java/` | Unit and controller tests |
 | `settings.xml.example` | Stub Maven settings for Lightwell authentication (copy to `~/.m2/settings.xml`) |
 | `.github/dependabot.yml` | Dependabot config for daily dependency updates from the Lightwell Remediated repository |
-| `.mavenrc.example` | Optional local Maven/JVM setup template |
 
 Running the next Maven command you can get a fully detailed list of the dependencies of the project:
 
 ```bash
-mvn dependency:tree > target/dependecy-tree.txt
+mvn dependency:tree > target/dependency-tree.txt
 ```
 
 To generate the SBOM, run:
@@ -138,14 +137,16 @@ Once configured, Dependabot opens PRs that bump dependencies to their remediated
 
 ### Lightwell Dependency Resolution
 
-This application includes the following dependencies available from the validated and remediated repos:
-
-* validated: `:2.21.1`
-* remediated: `spring-boot-starter-web:2.7.18.rhlw-00003`
-
-NOTE: To use the remediated version, just uncomment the version lines in the `pom.xml` file.
+Which of your dependencies have validated or remediated artifacts in the Lightwell Network
+catalog — and at which versions — can be checked beforehand using Lightwell Lens. For an
+overview of the repository tiers (Validated, Remediated, Predisclosure), see
+[Choose the right repository](https://docs.redhat.com/en/documentation/lightwell_network/current/get_started-choose_the_right_repository).
 
 #### Direct access
+
+To confirm that a dependency resolved through the Lightwell Remediated repository, inspect the
+corresponding `.lastUpdated` file in your local repository cache. For example, for Jackson
+(`2.21.1`, as declared in `pom.xml`):
 
 ```bash
 cat ~/.m2/repository/com/fasterxml/jackson/jakarta/rs/jackson-jakarta-rs-json-provider/2.21.1/jackson-jakarta-rs-json-provider-2.21.1.jar.lastUpdated
@@ -161,18 +162,14 @@ https\://packages.redhat.com/lightwell/java/remediated/.lastUpdated=178350618678
 https\://packages.redhat.com/lightwell/java/validated/.lastUpdated=1783506233044
 ```
 
+If a remediated version exists for a dependency (e.g.
+`spring-boot-starter-web:3.5.9.rhlw-00001`), Maven resolves it automatically — its `.rhlw-0000X`
+suffix sorts higher than the plain upstream version. The full resolved dependency list is
+available with:
+
 ```bash
-cat ~/.m2/repository/org/springframework/boot/spring-boot-starter-web/2.7.18.rhlw-00003/spring-boot-starter-web-2.7.18.rhlw-00003.jar.lastUpdated
+mvn dependency:tree
 ```
-
-The output will be similar to:
-
-```text
-#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
-#Wed Jul 08 12:28:24 CEST 2026
-https\://packages.redhat.com/lightwell/java/remediated/.lastUpdated=1783506504815
-https\://repo.maven.apache.org/maven2/.error=
-https\://repo.maven.apache.org/maven2/.lastUpdated=1783506403778
 
 ## 🌐 REST API
 
@@ -180,25 +177,12 @@ https\://repo.maven.apache.org/maven2/.lastUpdated=1783506403778
 |--------|------|-------------|-------------|
 | GET | `/api/greetings` | `getGreeting` | Return a greeting (optional `name` query parameter) |
 
-Human guide: [docs/API.md](./docs/API.md) · Contract: [openapi/openapi.yaml](./openapi/openapi.yaml)
-
-## 📚 Repository documentation
-
-| Path | Description |
-|------|-------------|
-| [AGENTS.md](./AGENTS.md) | Instructions for AI coding agents |
-| [llms.txt](./llms.txt) | Machine-readable index of project documentation |
-| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Architecture, API-first design, Lightwell integration |
-| [docs/API.md](./docs/API.md) | API-first workflow, samples, contract checklist |
-| [docs/BUILD-AND-RUN.md](./docs/BUILD-AND-RUN.md) | Build, credentials, TLS, and run locally |
-| [docs/TESTING.md](./docs/TESTING.md) | Testing strategy and practices |
-| [docs/DOCUMENTATION.md](./docs/DOCUMENTATION.md) | Documentation standards |
-| [docs/CONVENTIONS.md](./docs/CONVENTIONS.md) | Code and documentation conventions |
-| `.cursor/rules/` | Cursor-specific rules |
+Contract: [openapi/openapi.yaml](./openapi/openapi.yaml)
 
 ## 🔗 External references
 
 - [Red Hat Lightwell Network — service account](https://docs.redhat.com/en/documentation/red_hat_lightwell_network/current/get_started-create_a_red_hat_lightwell_network_service_account)
-- [Spring Boot 2.7 Reference Documentation](https://docs.spring.io/spring-boot/docs/2.7.18/reference/html/)
-- [Spring Boot Maven Plugin](https://docs.spring.io/spring-boot/docs/2.7.18/maven-plugin/reference/htmlsingle/)
+- [Red Hat Lightwell Network — configure your Java build tool](https://docs.redhat.com/en/documentation/lightwell_network/current/configure-configure_java_build_tool)
+- [Spring Boot 3.5 Reference Documentation](https://docs.spring.io/spring-boot/docs/3.5.9/reference/html/)
+- [Spring Boot Maven Plugin](https://docs.spring.io/spring-boot/docs/3.5.9/maven-plugin/reference/htmlsingle/)
 - [Apache Maven](https://maven.apache.org/guides/)
