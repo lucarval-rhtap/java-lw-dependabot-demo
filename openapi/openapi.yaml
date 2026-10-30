@@ -1,0 +1,72 @@
+openapi: 3.0.3
+info:
+  title: Spring Boot LW POC API
+  description: |
+    HTTP API for the Red Hat Lightwell Spring Boot proof of concept.
+
+    This file is the **single source of truth** for the public REST contract.
+    Update this specification **before** implementing or changing controllers, DTOs,
+    or service method signatures. Run the OpenAPI Generator Maven goal to scaffold
+    new endpoints or align existing code with the contract (see docs/API.md).
+  version: 0.0.1-SNAPSHOT
+  contact:
+    name: Lightwell POC team
+
+servers:
+  - url: http://localhost:8080
+    description: Local development (default port from application.properties)
+
+tags:
+  - name: Greetings
+    description: Personalized greeting messages for API consumers
+
+paths:
+  /api/greetings:
+    get:
+      tags:
+        - Greetings
+      operationId: getGreeting
+      summary: Return a personalized greeting
+      description: |
+        Returns a JSON greeting for an optional user name.
+
+        When `name` is omitted, blank, or contains only whitespace, the service
+        uses the default name `World` and responds with `Hello, World!`.
+        Non-blank values are trimmed before formatting the message.
+      parameters:
+        - name: name
+          in: query
+          required: false
+          description: Display name of the user to greet.
+          schema:
+            type: string
+            example: Alice
+      responses:
+        '200':
+          description: Greeting generated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GreetingResponse'
+              examples:
+                defaultGreeting:
+                  summary: Default greeting (no name)
+                  value:
+                    message: "Hello, World!"
+                personalizedGreeting:
+                  summary: Personalized greeting
+                  value:
+                    message: "Hello, Alice!"
+
+components:
+  schemas:
+    GreetingResponse:
+      type: object
+      description: JSON body returned by greeting endpoints.
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Formatted greeting text shown to the caller.
+          example: "Hello, World!"
