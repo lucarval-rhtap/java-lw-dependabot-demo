@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Stub Maven settings for authenticating to the Red Hat Lightwell Remediated repository.
+
+  Usage:
+    1. Copy this file to ~/.m2/settings.xml (or merge the blocks into your existing one).
+    2. Replace LIGHTWELL_USERNAME with your registry service account username
+       (format: XXXXXXX|service-account-name) and LIGHTWELL_TOKEN with its token.
+    3. Run `mvn dependency:resolve` and confirm artifacts resolve from
+       https://packages.redhat.com/lightwell/java/remediated/ and that patched
+       artifacts carry the .rhlw-0000X version suffix.
+
+  The <server><id> must match the repository <id> in pom.xml (lightwell-remediated).
+
+  Do NOT commit a filled-in copy of this file or paste real tokens into it.
+-->
+<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0 https://maven.apache.org/xsd/settings-1.2.0.xsd">
+
+  <servers>
+    <server>
+      <id>lightwell-remediated</id>
+      <username>LIGHTWELL_USERNAME</username>
+      <password>LIGHTWELL_TOKEN</password>
+    </server>
+  </servers>
+
+</settings>

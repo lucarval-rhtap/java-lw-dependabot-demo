@@ -21,6 +21,7 @@ Thumbs.db
 .env
 *.local.xml
 settings.local.xml
+settings.xml
 
 # Optional local TLS trust store
 .certs/

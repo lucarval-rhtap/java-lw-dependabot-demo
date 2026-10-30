@@ -1,0 +1,20 @@
+version: 2
+
+registries:
+  lightwell-remediated:
+    type: maven-repository
+    url: https://packages.redhat.com/lightwell/java/remediated/
+    username: ${{ secrets.LIGHTWELL_USERNAME }}
+    password: ${{ secrets.LIGHTWELL_TOKEN }}
+
+updates:
+  - package-ecosystem: "maven"
+    directory: "/"
+    registries:
+      - lightwell-remediated
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "lightwell"

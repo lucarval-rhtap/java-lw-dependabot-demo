@@ -28,6 +28,23 @@
         <plexus-utils.version>4.0.1</plexus-utils.version>
     </properties>
 
+    <!-- Resolve dependencies from the Red Hat Lightwell Remediated repository first,
+         so patched artifacts (e.g. 5.3.17.rhlw-00001) win over their upstream versions.
+         Credentials are supplied via the matching <server> id in settings.xml. -->
+    <repositories>
+        <repository>
+            <id>lightwell-remediated</id>
+            <name>Lightwell Network - Remediated</name>
+            <url>https://packages.redhat.com/lightwell/java/remediated/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
     <dependencies>
         <!-- Validated dependencies -->
         <dependency>
