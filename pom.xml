@@ -52,6 +52,16 @@
             <artifactId>jackson-jakarta-rs-json-provider</artifactId>
             <version>${jackson.version}</version>
         </dependency>
+        <!-- Canonical Dependabot/Lightwell pilot case: plain upstream pin for
+             CVE-2022-40152, remediated as 6.0.3.rhlw-00001 in the Lightwell
+             Remediated repository (advisory RHLW-2026-403d1e66c95ef9bb).
+             Deliberately pinned at the PLAIN version so the security-update
+             path must propose the .rhlw respin. -->
+        <dependency>
+            <groupId>com.fasterxml.woodstox</groupId>
+            <artifactId>woodstox-core</artifactId>
+            <version>6.0.3</version>
+        </dependency>
         <!-- Springframework dependencies -->
         <dependency>
             <groupId>org.springframework.security</groupId>

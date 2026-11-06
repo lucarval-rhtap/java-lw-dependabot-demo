@@ -5,7 +5,7 @@ follow an **API-first** contract defined in [openapi/openapi.yaml](./openapi/ope
 
 | Property | Value |
 |----------|-------|
-| Spring Boot | 3.5.9 |
+| Spring Boot | 2.7.18 |
 | Java | 17 |
 | Build tool | Maven |
 | GroupId | `com.redhat.lightwell` |
@@ -15,6 +15,11 @@ follow an **API-first** contract defined in [openapi/openapi.yaml](./openapi/ope
 
 Minimal, well-documented baseline for local development, packaging, and testing on the Red Hat
 Lightwell Network — suitable as a starting point for lightweight services or experiments.
+
+This repo is also the **pilot for the self-hosted Dependabot + Lightwell experiment**: it pins
+`com.fasterxml.woodstox:woodstox-core` at plain upstream `6.0.3` (vulnerable to CVE-2022-40152,
+remediated as `6.0.3.rhlw-00001`), which is the canonical test case for verifying that a
+Dependabot run with Lightwell advisories proposes the `.rhlw` respin.
 
 ## 📋 Prerequisites
 
