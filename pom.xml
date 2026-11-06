@@ -20,7 +20,7 @@
     <properties>
         <java.version>17</java.version>
         <spring.boot.version>2.7.18.rhlw-00002</spring.boot.version>
-        <spring.security.version>5.7.11</spring.security.version>
+        <spring.security.version>5.7.14</spring.security.version>
         <openapi-generator.version>7.2.0</openapi-generator.version>
         <jackson.version>2.21.1</jackson.version>
         <springdoc.version>1.7.0</springdoc.version>
