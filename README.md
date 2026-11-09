@@ -51,6 +51,16 @@ running side by side with native Dependabot.
 > Database (not fixable from a self-hosted setup). The PR list (filtered by the `lightwell`
 > label) is the interface.
 
+> **Possible alternative on GitHub Enterprise Cloud: [innersource advisories](https://docs.github.com/en/enterprise-cloud@latest/code-security/concepts/vulnerability-reporting-and-management/innersource-advisories).**
+> Enterprises with a GitHub Code Security or GHAS license can upload OSV-format advisories (via
+> `POST /enterprises/{enterprise}/innersource-vulnerabilities/sync`), which native Dependabot
+> consumes to raise alerts and open fix PRs — potentially covering Lightwell remediations
+> without the self-hosted pipeline, since `lightwell-osv` data is already in OSV format. Two
+> caveats: Dependabot's `.rhlw-0000X` version-ordering limitation (see #2 above) would likely
+> still apply, and this has **not been tested** here — no GitHub Enterprise environment was
+> available to verify it. Not applicable to GitHub Enterprise Server, where Dependabot only
+> consumes the public GitHub Advisory Database.
+
 ## 🤖 Self-hosted Lightwell Dependabot
 
 ### How it works
