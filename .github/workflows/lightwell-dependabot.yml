@@ -1,0 +1,74 @@
+# Self-hosted Dependabot for Red Hat Lightwell remediations (Phase 3A).
+#
+# Runs the stock dependabot-cli against the Lightwell fork updater image
+# (quay.io/lucarval/dependabot-updater-maven:lightwell), with advisories
+# transformed from lightwell-osv, and opens real PRs for the proposals.
+# See scripts/lightwell_dependabot.py (the driver) and the README for the
+# full picture, prerequisites, and replication instructions.
+#
+# NOTE: scheduled workflows on public repos are auto-disabled after 60 days
+# of repo inactivity -- re-enable manually or keep the repo active.
+
+name: Lightwell Dependabot
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: lightwell-dependabot
+  cancel-in-progress: false
+
+env:
+  UPDATER_IMAGE: quay.io/lucarval/dependabot-updater-maven:lightwell
+  ADVISORIES_REPO: lcarva/lightwell-osv
+  ADVISORIES_BRANCH: feat/dependabot-advisories-transform
+  # Stock dependabot-cli, pinned (fallback if it ever fails on GH runners:
+  # go install from the fork branch, ~1 min).
+  CLI_VERSION: v1.97.0
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout target repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0 # PR commits may be based on any recent commit
+
+      - name: Install dependabot CLI (pinned)
+        run: |
+          asset="dependabot-${CLI_VERSION}-linux-amd64.tar.gz"
+          curl -sfL -o "$RUNNER_TEMP/$asset" \
+            "https://github.com/dependabot/cli/releases/download/${CLI_VERSION}/${asset}"
+          tar -xzf "$RUNNER_TEMP/$asset" -C "$RUNNER_TEMP"
+          install -m 0755 "$RUNNER_TEMP/dependabot" /usr/local/bin/dependabot
+          dependabot help >/dev/null
+          echo "installed: $(dependabot help 2>&1 | head -1)"
+
+      - name: Clone advisory repo (transform branch)
+        run: |
+          git clone --depth 1 --branch "$ADVISORIES_BRANCH" \
+            "https://github.com/${ADVISORIES_REPO}.git" "$RUNNER_TEMP/lightwell-osv"
+
+      - name: Ensure PyYAML
+        run: python3 -c "import yaml" 2>/dev/null || pip install pyyaml
+
+      - name: Run Lightwell Dependabot
+        env:
+          LOCAL_GITHUB_ACCESS_TOKEN: ${{ github.token }} # auto-injected git_source credential
+          LIGHTWELL_USER: ${{ secrets.LIGHTWELL_USER }}
+          LIGHTWELL_TOKEN: ${{ secrets.LIGHTWELL_TOKEN }}
+          GH_TOKEN: ${{ github.token }} # for gh pr create / label list
+        run: |
+          gh auth setup-git
+          python3 scripts/lightwell_dependabot.py \
+            --advisories-repo "$RUNNER_TEMP/lightwell-osv" \
+            --updater-image "$UPDATER_IMAGE" \
+            --work-dir "$RUNNER_TEMP/lightwell-work"

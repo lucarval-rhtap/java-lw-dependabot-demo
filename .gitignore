@@ -23,6 +23,9 @@ Thumbs.db
 settings.local.xml
 settings.xml
 
+# Python
+__pycache__
+
 # Optional local TLS trust store
 .certs/
 
