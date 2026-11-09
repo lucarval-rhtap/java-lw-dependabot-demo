@@ -49,47 +49,10 @@ curl -s "http://localhost:8080/api/greetings" | jq
 curl -s "http://localhost:8080/api/greetings?name=Alice" | jq
 ```
 
-Browse and test the API in the browser (Swagger UI):
-
-```bash
-http://localhost:8080/swagger-ui.html
-```
-
-Raw OpenAPI contract at runtime: `http://localhost:8080/openapi/openapi.yaml`
-
-After API contract changes:
+After API contract changes, regenerate the server stubs:
 
 ```bash
 mvn openapi-generator:generate
-```
-
-## 🧩 Application components
-
-| Path | Description |
-|------|-------------|
-| `pom.xml` | Maven build, dependencies, Lightwell Remediated repository, OpenAPI Generator plugin |
-| `openapi/openapi.yaml` | OpenAPI 3 contract — source of truth for public REST API |
-| `src/main/java/com/redhat/lightwell/Application.java` | Spring Boot entry point |
-| `src/main/java/com/redhat/lightwell/controller/GreetingController.java` | REST controller for greetings |
-| `src/main/java/com/redhat/lightwell/service/GreetingService.java` | Greeting business logic |
-| `src/main/java/com/redhat/lightwell/model/GreetingResponse.java` | API response DTO |
-| `src/main/resources/application.properties` | Application configuration |
-| `src/test/java/` | Unit and controller tests |
-| `settings.xml.example` | Stub Maven settings for Lightwell authentication (copy to `~/.m2/settings.xml`) |
-| `.github/dependabot.yml` | Dependabot config for daily dependency updates from the Lightwell Remediated repository |
-| `.github/workflows/lightwell-dependabot.yml` | Self-hosted Lightwell Dependabot workflow (weekly, see [below](#-self-hosted-lightwell-dependabot)) |
-| `scripts/lightwell_dependabot.py` | Driver for the self-hosted workflow: transform → dependabot-cli runs → PRs |
-
-Running the next Maven command you can get a fully detailed list of the dependencies of the project:
-
-```bash
-mvn dependency:tree > target/dependency-tree.txt
-```
-
-To generate the SBOM, run:
-
-```bash
-syft ./target/spring-boot-lw-poc-0.0.1-SNAPSHOT.jar -o cyclonedx-json=target/spring-boot-lw-poc-0.0.1-sbom.json
 ```
 
 ### 🔐 Lightwell setup
@@ -153,47 +116,6 @@ pass through, which is where `.rhlw` remediations live (e.g. `2.21.1 → 2.21.1.
 
 To take an upstream major/minor upgrade deliberately, bump the version in `pom.xml` manually or
 remove the `ignore` block temporarily.
-
-> **Note:** `.rhlw` artifacts are also resolved transparently at build time — Maven picks them
-> up automatically whenever they exist for a declared version, no PR required. Dependabot PRs
-> make the remediation *visible and reviewable*, but the secure resolution itself does not
-> depend on them.
-
-### Lightwell Dependency Resolution
-
-Which of your dependencies have validated or remediated artifacts in the Lightwell Network
-catalog — and at which versions — can be checked beforehand using Lightwell Lens. For an
-overview of the repository tiers (Validated, Remediated, Predisclosure), see
-[Choose the right repository](https://docs.redhat.com/en/documentation/lightwell_network/current/get_started-choose_the_right_repository).
-
-#### Direct access
-
-To confirm that a dependency resolved through the Lightwell Remediated repository, inspect the
-corresponding `.lastUpdated` file in your local repository cache. For example, for Jackson
-(`2.21.1`, as declared in `pom.xml`):
-
-```bash
-cat ~/.m2/repository/com/fasterxml/jackson/jakarta/rs/jackson-jakarta-rs-json-provider/2.21.1/jackson-jakarta-rs-json-provider-2.21.1.jar.lastUpdated
-```
-
-The output will be similar to:
-
-```text
-#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
-#Wed Jul 08 12:23:53 CEST 2026
-https\://packages.redhat.com/lightwell/java/remediated/.error=
-https\://packages.redhat.com/lightwell/java/remediated/.lastUpdated=1783506186784
-https\://packages.redhat.com/lightwell/java/validated/.lastUpdated=1783506233044
-```
-
-If a remediated version exists for a dependency (e.g.
-`spring-boot-starter-web:3.5.9.rhlw-00001`), Maven resolves it automatically — its `.rhlw-0000X`
-suffix sorts higher than the plain upstream version. The full resolved dependency list is
-available with:
-
-```bash
-mvn dependency:tree
-```
 
 ## 🤖 Self-hosted Lightwell Dependabot
 
@@ -285,11 +207,3 @@ The updater image is not quay-specific: rebuild it from any dependabot-core fork
 | GET | `/api/greetings` | `getGreeting` | Return a greeting (optional `name` query parameter) |
 
 Contract: [openapi/openapi.yaml](./openapi/openapi.yaml)
-
-## 🔗 External references
-
-- [Red Hat Lightwell Network — service account](https://docs.redhat.com/en/documentation/red_hat_lightwell_network/current/get_started-create_a_red_hat_lightwell_network_service_account)
-- [Red Hat Lightwell Network — configure your Java build tool](https://docs.redhat.com/en/documentation/lightwell_network/current/configure-configure_java_build_tool)
-- [Spring Boot 3.5 Reference Documentation](https://docs.spring.io/spring-boot/docs/3.5.9/reference/html/)
-- [Spring Boot Maven Plugin](https://docs.spring.io/spring-boot/docs/3.5.9/maven-plugin/reference/htmlsingle/)
-- [Apache Maven](https://maven.apache.org/guides/)
