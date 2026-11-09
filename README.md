@@ -19,7 +19,8 @@ Lightwell Network — suitable as a starting point for lightweight services or e
 This repo is also the **pilot for the self-hosted Dependabot + Lightwell experiment**: it pins
 `com.fasterxml.woodstox:woodstox-core` at plain upstream `6.0.3` (vulnerable to CVE-2022-40152,
 remediated as `6.0.3.rhlw-00001`), which is the canonical test case for verifying that a
-Dependabot run with Lightwell advisories proposes the `.rhlw` respin.
+Dependabot run with Lightwell advisories proposes the `.rhlw` respin. See
+[Self-hosted Lightwell Dependabot](#-self-hosted-lightwell-dependabot).
 
 ## 📋 Prerequisites
 
@@ -76,6 +77,8 @@ mvn openapi-generator:generate
 | `src/test/java/` | Unit and controller tests |
 | `settings.xml.example` | Stub Maven settings for Lightwell authentication (copy to `~/.m2/settings.xml`) |
 | `.github/dependabot.yml` | Dependabot config for daily dependency updates from the Lightwell Remediated repository |
+| `.github/workflows/lightwell-dependabot.yml` | Self-hosted Lightwell Dependabot workflow (weekly, see [below](#-self-hosted-lightwell-dependabot)) |
+| `scripts/lightwell_dependabot.py` | Driver for the self-hosted workflow: transform → dependabot-cli runs → PRs |
 
 Running the next Maven command you can get a fully detailed list of the dependencies of the project:
 
@@ -191,6 +194,89 @@ available with:
 ```bash
 mvn dependency:tree
 ```
+
+## 🤖 Self-hosted Lightwell Dependabot
+
+[`.github/workflows/lightwell-dependabot.yml`](./.github/workflows/lightwell-dependabot.yml) runs a
+**self-hosted Dependabot** (weekly, Mondays 06:00 UTC, plus manual
+[`workflow_dispatch`](https://github.com/lucarval-rhtap/java-lw-dependabot-demo/actions/workflows/lightwell-dependabot.yml))
+that opens PRs for **Lightwell remediations** — something native GitHub Dependabot cannot do.
+
+### Why it exists
+
+Native Dependabot (`.github/dependabot.yml`) only consumes the GitHub Advisory Database, where
+Lightwell advisories don't exist, and its version parser predates the `.rhlw-0000X` suffix. The
+result is visible in this repo's PR list: for the same CVE (CVE-2022-40152, woodstox-core
+`6.0.3`), native Dependabot proposes the **upstream** fix (`6.4.0`) while this workflow proposes
+the **Lightwell remediation** (`6.0.3.rhlw-00001`). The two run side by side; the self-hosted
+workflow labels its PRs `dependencies` + `lightwell`.
+
+> **Note:** the workflow opens ordinary pull requests — it does **not** create Dependabot alerts
+> or Security-tab entries. The PR list (filtered by the `lightwell` label) is the interface.
+
+### How it works
+
+One job on `ubuntu-latest`, driven by [`scripts/lightwell_dependabot.py`](./scripts/lightwell_dependabot.py):
+
+1. **Install the stock [dependabot-cli](https://github.com/dependabot/cli)** (pinned release
+   binary — no patching needed on GitHub-hosted runners).
+2. **Transform advisories** — clone [`lcarva/lightwell-osv`](https://github.com/lcarva/lightwell-osv)
+   (branch `feat/dependabot-advisories-transform`) and run
+   `tools/dependabot_advisories.py --only <GAVs in the manifest>` to convert the Lightwell OSV
+   records into dependabot job `security-advisories`, pre-filtered to this repo's dependencies.
+3. **Run dependabot-cli** against the fork updater image
+   `quay.io/lucarval/dependabot-updater-maven:lightwell` (stock dependabot-core plus the
+   `.rhlw` version-ordering patches from
+   [dependabot-core#16848](https://github.com/dependabot/dependabot-core/pull/16848) and the
+   plain→respin fix):
+   - one **version-update job** for the whole manifest (patch-level updates + advisory-driven
+     respins; semver-major/minor noise suppressed, same policy as `.github/dependabot.yml`), and
+   - one **security job per vulnerable dependency** (`security-updates-only` + a named
+     dependency — the updater requires this, and it mirrors how github.com runs security
+     updates).
+4. **Open PRs** — each `create_pull_request` payload becomes a branch + commit + PR
+   (`lightwell/dependabot/<group>/<artifact>-<version>`), deduplicated against existing open PRs
+   so re-runs never duplicate.
+
+Credentials never appear in the generated job inputs: the input files reference
+`$LIGHTWELL_USER`/`$LIGHTWELL_TOKEN` environment variables, expanded by the CLI at run time.
+
+### Prerequisites
+
+| Requirement | Detail |
+|-------------|--------|
+| Updater image | `quay.io/lucarval/dependabot-updater-maven:lightwell` — public, pullable anonymously |
+| Advisory transform | Public fork [`lcarva/lightwell-osv`](https://github.com/lcarva/lightwell-osv), branch `feat/dependabot-advisories-transform` |
+| Repo **Actions** secrets | `LIGHTWELL_USER`, `LIGHTWELL_TOKEN` — registry service account (same credentials as [local builds](#-lightwell-setup)) |
+| Org/repo setting | **Settings → Actions → General → Workflow permissions → "Allow GitHub Actions to create and approve pull requests"** must be enabled, or PR creation fails after the branches are pushed. Alternatively, store a fine-grained PAT (Contents + Pull requests, read/write on this repo) as the secret `LIGHTWELL_GH_TOKEN` — the workflow falls back to it automatically. |
+
+### Replicating in another repo (or with another registry)
+
+1. **Copy** `.github/workflows/lightwell-dependabot.yml` and `scripts/lightwell_dependabot.py`
+   into the target repo. The driver reads the target repo from `$GITHUB_REPOSITORY` and the
+   manifest from `pom.xml` at the repo root — nothing else to configure for a standard
+   single-module Maven project.
+2. **Add the Actions secrets** `LIGHTWELL_USER` / `LIGHTWELL_TOKEN` to the target repo.
+3. **Ensure the PR-creation setting** (see prerequisites) is enabled for the org/repo.
+4. Run the workflow manually once to verify, then let the weekly schedule take over.
+
+The updater image is not quay-specific: rebuild it from any dependabot-core fork carrying the
+`.rhlw` patches (the fork's `maven/Dockerfile` builds directly on the stock
+`ghcr.io/dependabot/dependabot-updater-core` base — only `maven/` differs) and point
+`UPDATER_IMAGE` at your registry.
+
+### Caveats & known limitations
+
+- **Scheduled workflows auto-disable after 60 days of repo inactivity** (GitHub policy for
+  public repos) — re-enable the workflow manually if the schedule goes quiet.
+- **Cross-branch advisory over-claim** (upstream `lightwell-osv` data bug): advisories using
+  `introduced: "0"` claim all lower versions are affected, which occasionally produces an
+  aggressive plain-upstream **major** proposal in security jobs (e.g. spring-security-core
+  `5.7.11 → 6.5.8`). When it appears, close the PR — the correct respin proposal is not lost.
+- **PRs created by `GITHUB_TOKEN` do not trigger CI workflows** (standard GitHub behavior for
+  bot-created PRs).
+- The transform branch is fork-hosted by design; if the workflow fails on a newly published
+  advisory record, it will fail loudly at run time rather than in CI.
 
 ## 🌐 REST API
 

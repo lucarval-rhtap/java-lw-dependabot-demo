@@ -65,7 +65,10 @@ jobs:
           LOCAL_GITHUB_ACCESS_TOKEN: ${{ github.token }} # auto-injected git_source credential
           LIGHTWELL_USER: ${{ secrets.LIGHTWELL_USER }}
           LIGHTWELL_TOKEN: ${{ secrets.LIGHTWELL_TOKEN }}
-          GH_TOKEN: ${{ github.token }} # for gh pr create / label list
+          # A PAT (fine-grained, pull-requests:write + contents:read/write on this
+          # repo) is needed when the org policy blocks GITHUB_TOKEN PR creation;
+          # falls back to GITHUB_TOKEN when the secret is absent.
+          GH_TOKEN: ${{ secrets.LIGHTWELL_GH_TOKEN || github.token }}
         run: |
           gh auth setup-git
           python3 scripts/lightwell_dependabot.py \
