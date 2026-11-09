@@ -7,8 +7,9 @@ Implements the Phase 3A pipeline (see the repo README and
   1. Parse the Maven manifest (pom.xml) for direct dependency coordinates
      (parent, dependencies, dependencyManagement).
   2. Run the Lightwell OSV -> dependabot-advisories transform
-     (github.com/lcarva/lightwell-osv, branch feat/dependabot-advisories-transform),
-     pre-filtered to the manifest's coordinates.
+     (scripts/dependabot_advisories.py, an in-repo copy), pre-filtered to the
+     manifest's coordinates, against advisory data from a checkout of upstream
+     project-lightwell/lightwell-osv.
   3. Assemble dependabot-cli job inputs:
        - one version-update job: all (filtered) advisories + ignore-conditions
          that suppress semver-major/minor noise (update-types never apply to
@@ -128,23 +129,30 @@ def manifest_dependency_names(pom_path):
 # --------------------------------------------------------------------------
 
 def run_transform(advisories_repo, names, out_dir):
-    """Run tools/dependabot_advisories.py pre-filtered to the manifest GAVs.
+    """Run the in-repo copy of dependabot_advisories.py, pre-filtered to the
+    manifest GAVs, against advisory data in a lightwell-osv checkout.
 
     Returns the path of the generated job-advisories YAML. Fails loudly on
     invariant violations (that is the mitigation for having no upstream CI).
     """
-    script = Path(advisories_repo) / "tools" / "dependabot_advisories.py"
+    script = Path(__file__).resolve().parent / "dependabot_advisories.py"
     if not script.is_file():
         raise SystemExit(f"transform script not found: {script}")
+    sha = run(["git", "-C", str(advisories_repo), "rev-parse", "--short", "HEAD"],
+              check=False, capture_output=True, text=True).stdout.strip()
+    if sha:
+        log(f"advisory data: {advisories_repo} @ {sha}")
+    out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     cmd = [
         sys.executable, str(script),
         "--only", *names,
+        "--advisories", str(Path(advisories_repo) / "advisories"),
         "--skip-osv",
         "--out-dir", str(out_dir),
     ]
     log(f"running transform: {' '.join(cmd[1:])}")
-    run(cmd, cwd=advisories_repo)
+    run(cmd, cwd=Path(__file__).resolve().parent)
     yaml_path = out_dir / "security-advisories-maven.yaml"
     if not yaml_path.is_file():
         raise SystemExit(f"transform produced no output at {yaml_path}")
@@ -362,8 +370,8 @@ def main():
     ap.add_argument("--pom", default=None,
                     help="path to pom.xml (default: <repo-dir>/pom.xml)")
     ap.add_argument("--advisories-repo", required=True,
-                    help="path to a lightwell-osv checkout "
-                         "(branch feat/dependabot-advisories-transform)")
+                    help="path to an upstream lightwell-osv checkout "
+                         "(project-lightwell/lightwell-osv, default branch)")
     ap.add_argument("--updater-image", required=True,
                     help="fork updater image, e.g. "
                          "quay.io/lucarval/dependabot-updater-maven:lightwell")

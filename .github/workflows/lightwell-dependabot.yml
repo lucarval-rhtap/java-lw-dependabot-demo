@@ -2,7 +2,8 @@
 #
 # Runs the stock dependabot-cli against the Lightwell fork updater image
 # (quay.io/lucarval/dependabot-updater-maven:lightwell), with advisories
-# transformed from lightwell-osv, and opens real PRs for the proposals.
+# transformed from upstream lightwell-osv data by the in-repo
+# scripts/dependabot_advisories.py, and opens real PRs for the proposals.
 # See scripts/lightwell_dependabot.py (the driver) and the README for the
 # full picture, prerequisites, and replication instructions.
 #
@@ -26,8 +27,8 @@ concurrency:
 
 env:
   UPDATER_IMAGE: quay.io/lucarval/dependabot-updater-maven:lightwell
-  ADVISORIES_REPO: lcarva/lightwell-osv
-  ADVISORIES_BRANCH: feat/dependabot-advisories-transform
+  # Upstream advisory *data* only; the transform script is the in-repo
+  # scripts/dependabot_advisories.py.
   # Stock dependabot-cli, pinned (fallback if it ever fails on GH runners:
   # go install from the fork branch, ~1 min).
   CLI_VERSION: v1.97.0
@@ -52,10 +53,10 @@ jobs:
           dependabot help >/dev/null
           echo "installed: $(dependabot help 2>&1 | head -1)"
 
-      - name: Clone advisory repo (transform branch)
+      - name: Clone upstream advisory data
         run: |
-          git clone --depth 1 --branch "$ADVISORIES_BRANCH" \
-            "https://github.com/${ADVISORIES_REPO}.git" "$RUNNER_TEMP/lightwell-osv"
+          git clone --depth 1 \
+            "https://github.com/project-lightwell/lightwell-osv.git" "$RUNNER_TEMP/lightwell-osv"
 
       - name: Ensure PyYAML
         run: python3 -c "import yaml" 2>/dev/null || pip install pyyaml

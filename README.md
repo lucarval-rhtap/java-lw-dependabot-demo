@@ -142,9 +142,10 @@ One job on `ubuntu-latest`, driven by [`scripts/lightwell_dependabot.py`](./scri
 
 1. **Install the stock [dependabot-cli](https://github.com/dependabot/cli)** (pinned release
    binary — no patching needed on GitHub-hosted runners).
-2. **Transform advisories** — clone [`lcarva/lightwell-osv`](https://github.com/lcarva/lightwell-osv)
-   (branch `feat/dependabot-advisories-transform`) and run
-   `tools/dependabot_advisories.py --only <GAVs in the manifest>` to convert the Lightwell OSV
+2. **Transform advisories** — clone the upstream
+   [`project-lightwell/lightwell-osv`](https://github.com/project-lightwell/lightwell-osv)
+   advisory data and run the in-repo [`scripts/dependabot_advisories.py`](./scripts/dependabot_advisories.py)
+   `--only <GAVs in the manifest>` to convert the Lightwell OSV
    records into dependabot job `security-advisories`, pre-filtered to this repo's dependencies.
 3. **Run dependabot-cli** against the fork updater image
    `quay.io/lucarval/dependabot-updater-maven:lightwell` (stock dependabot-core plus the
@@ -168,16 +169,16 @@ Credentials never appear in the generated job inputs: the input files reference
 | Requirement | Detail |
 |-------------|--------|
 | Updater image | `quay.io/lucarval/dependabot-updater-maven:lightwell` — public, pullable anonymously |
-| Advisory transform | Public fork [`lcarva/lightwell-osv`](https://github.com/lcarva/lightwell-osv), branch `feat/dependabot-advisories-transform` |
+| Advisory data | Upstream [`project-lightwell/lightwell-osv`](https://github.com/project-lightwell/lightwell-osv) default branch (cloned fresh each run; the transform script lives in this repo) |
 | Repo **Actions** secrets | `LIGHTWELL_USER`, `LIGHTWELL_TOKEN` — registry service account (same credentials as [local builds](#-lightwell-setup)) |
 | Org/repo setting | **Settings → Actions → General → Workflow permissions → "Allow GitHub Actions to create and approve pull requests"** must be enabled, or PR creation fails after the branches are pushed. Alternatively, store a fine-grained PAT (Contents + Pull requests, read/write on this repo) as the secret `LIGHTWELL_GH_TOKEN` — the workflow falls back to it automatically. |
 
 ### Replicating in another repo (or with another registry)
 
-1. **Copy** `.github/workflows/lightwell-dependabot.yml` and `scripts/lightwell_dependabot.py`
-   into the target repo. The driver reads the target repo from `$GITHUB_REPOSITORY` and the
-   manifest from `pom.xml` at the repo root — nothing else to configure for a standard
-   single-module Maven project.
+1. **Copy** `.github/workflows/lightwell-dependabot.yml` and `scripts/`
+   (`lightwell_dependabot.py` + `dependabot_advisories.py`) into the target repo. The driver
+   reads the target repo from `$GITHUB_REPOSITORY` and the manifest from `pom.xml` at the
+   repo root — nothing else to configure for a standard single-module Maven project.
 2. **Add the Actions secrets** `LIGHTWELL_USER` / `LIGHTWELL_TOKEN` to the target repo.
 3. **Ensure the PR-creation setting** (see prerequisites) is enabled for the org/repo.
 4. Run the workflow manually once to verify, then let the weekly schedule take over.
@@ -197,8 +198,9 @@ The updater image is not quay-specific: rebuild it from any dependabot-core fork
   `5.7.11 → 6.5.8`). When it appears, close the PR — the correct respin proposal is not lost.
 - **PRs created by `GITHUB_TOKEN` do not trigger CI workflows** (standard GitHub behavior for
   bot-created PRs).
-- The transform branch is fork-hosted by design; if the workflow fails on a newly published
-  advisory record, it will fail loudly at run time rather than in CI.
+- The transform script lives in this repo; if the workflow fails on a newly published
+  advisory record, it will fail loudly at run time rather than in CI — fix the invariant
+  in `scripts/dependabot_advisories.py` locally.
 
 ## 🌐 REST API
 
